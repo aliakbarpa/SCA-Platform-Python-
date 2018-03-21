@@ -1,0 +1,2027 @@
+import tkinter as tk
+from tkinter import ttk
+import tkinter.filedialog as tkf
+import matplotlib as mpl
+mpl.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.figure import Figure
+from matplotlib import pyplot as plt
+import pandas as pd
+import numpy as np
+import matplotlib.gridspec as gridspec
+from PIL import ImageTk, Image
+
+LARGE_FONT = ("Verdana", 12)
+NORMAL_FONT = ("Helvetica", 10)
+SMALL_FONT = ("Helvetica", 8)
+
+def popupmsg(msg):
+    popup = tk.Tk()
+    popup.wm_title("!")
+    label = ttk.Label(popup, text=msg, font=NORMAL_FONT)
+    label.pack(side="top", fill="x", pady=10)
+    saveButton = ttk.Button(popup, text="OK", command = popup.destroy)
+    saveButton.pack()
+    popup.mainloop()
+
+class StartHacking(tk.Tk):
+    def __init__(self, *args, **kwargs):
+
+        tk.Tk.__init__(self, *args, **kwargs)
+
+        tk.Tk.wm_title(self, " Nanyang Technological University - Ali Akbar Pammu ")
+
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        menubar = tk.Menu(container)
+        filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu.add_command(label="Save", command=lambda: popupmsg('Not supported yet.'))
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=quit)
+        menubar.add_cascade(label="File", menu=filemenu)
+
+        tk.Tk.config(self, menu=menubar)
+
+        self.frames = {}
+
+        for F in (HomePage, PageFirst, PageLast):
+
+            frame = F(container, self)
+            self.frames[F] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
+
+        self.show_frame(HomePage)
+
+    def show_frame(self, cont):
+
+        frame = self.frames[cont]
+        frame.tkraise()
+
+class HomePage(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent)
+
+        label = ttk.Label(self, text="Side-Channel Attack", font=LARGE_FONT)
+        label.pack(pady=10,padx=10)
+
+        ###photo = tk.PhotoImage('logo.jpg')
+        ###logo = tk.Label(image=photo)
+        ###logo.image = photo
+        ###logo.pack()
+
+        #fig = plt.figure(figsize=(1,1))
+        #canvas2 = FigureCanvasTkAgg(fig,self)
+        #canvas2.draw()
+        ##canvas2.pack(expand=YES, fill=BOTH)
+        #canvas2.get_tk_widget().pack(expand=False)
+
+        #logo = PIL.ImageTk.PhotoImage(file='logo.jpg')
+        ##canvas2.create_image(50,10, image=logo)
+
+        ##logo = "logo.jpg"
+        ##img = ImageTk.PhotoImage(Image.open(logo))
+        ##schLogo = ttk.Label(self, image = img)
+        ##schLogo.pack()
+
+        def chooseInput():
+            fileInput = tkf.askopenfilename()
+            labelInputPath.config(text=fileInput, fg='blue')
+            global A
+            A = pd.read_csv(fileInput, header= None);
+
+        def chooseTrace():
+            fileTrace = tkf.askopenfilename()
+            labelTracePath.config(text=fileTrace, fg='blue')
+            global B1
+            B1 = pd.read_csv(fileTrace, header=None)
+            #B = np.array(B1.T)
+
+        pickInput = ttk.Button(self, text='Pick Input File', command=chooseInput)
+        pickInput.pack(side='top', padx=10, pady=10)
+
+        labelInput = ttk.Label(self, text='Input path is: ', font=NORMAL_FONT)
+        labelInput.pack()
+
+        labelInputPath = tk.Label(self, text=' ')
+        labelInputPath.pack()
+
+        #trace file
+        pickTrace =  ttk.Button(self, text='Pick Trace File', command=chooseTrace)
+        pickTrace.pack(side='top', padx=10, pady=10)
+
+        labelTrace = ttk.Label(self, text='Trace path is: ', font=NORMAL_FONT)
+        labelTrace.pack()
+
+        labelTracePath = tk.Label(self, text=' ')
+        labelTracePath.pack()
+
+        space = ttk.Label(self, text='')
+        space.pack(padx=20,pady=20)
+
+        buttonFirst = ttk.Button(self, text="First Round Attack", command=lambda: controller.show_frame(PageFirst))
+        buttonFirst.pack(padx=10, pady=10)
+
+        buttonLast = ttk.Button(self, text="Last Round Attack", command=lambda: controller.show_frame(PageLast))
+        buttonLast.pack(padx=10, pady=10)
+
+
+class PageFirst(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent)
+
+        ##left frame for control and right frame for graph
+        leftFrame = tk.Frame(self)
+        leftFrame.pack(side="left", fill="y", expand=False)
+        rightFrame = tk.Frame(self)
+        rightFrame.pack(side="right", fill="both", expand=False)
+
+        ##title
+        label = ttk.Label(leftFrame, text="First Round Attack", font=LARGE_FONT)
+        label.pack(pady=10,padx=10)
+
+        ##create graphs
+        fig, ax_arr = plt.subplots(nrows=4, ncols=4, squeeze=False, figsize=(7,7))
+        plt.tight_layout()
+
+        ##starting option
+        keyOption = tk.IntVar(self)
+        keyOption.set('0')
+
+        ##key options
+        keyChoices = tk.OptionMenu(leftFrame, keyOption, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+        keyChoices.pack(pady=5,padx=10, anchor="center")
+
+        ##create empty array for keys and hex values
+        ##array 0: keys 0-3
+        ##array 1: keys 4-7,
+        ##array 2: keys 8-11,
+        ##array 3: keys 12-15
+        blank = [0,0,0,0]
+        global keyFirstAnsList0, keyFirstAnsListHex0, keyFirstAnsList1, keyFirstAnsListHex1, keyFirstAnsList2, keyFirstAnsListHex2, keyFirstAnsList3, keyFirstAnsListHex3
+        keyFirstAnsList0 = np.array(blank)
+        keyFirstAnsListHex0 = np.array(blank)
+        keyFirstAnsList1 = np.array(blank)
+        keyFirstAnsListHex1 = np.array(blank)
+        keyFirstAnsList2 = np.array(blank)
+        keyFirstAnsListHex2 = np.array(blank)
+        keyFirstAnsList3 = np.array(blank)
+        keyFirstAnsListHex3 = np.array(blank)
+
+        def SubBytes(input):
+            return {
+                0: 99,	1: 124,	2: 119,	3: 123,	4: 242,	5: 107,	6: 111, 7: 197,	8: 48, 9: 1, 10: 103, 11: 43, 12: 254,	13: 215,
+                14: 171, 15: 118, 16: 202, 17: 130,	18: 201, 19: 125, 20: 250, 21: 89,	22: 71,	23: 240, 24: 173, 25: 212,
+                26: 162, 27: 175, 28: 156, 29: 164, 30: 114, 31: 192, 32: 183, 33: 253, 34: 147, 35: 38, 36: 54, 37: 63,
+                38: 247, 39: 204, 40: 52, 41: 165, 42: 229, 43: 241, 44: 113, 45: 216, 46: 49, 47: 21, 48: 4, 49: 199, 50: 35,
+                51: 195, 52: 24, 53: 150, 54: 5, 55: 154, 56: 7, 57: 18, 58: 128, 59: 226, 60: 235, 61: 39, 62: 178, 63: 117,
+                64: 9, 65: 131, 66: 44, 67: 26,	68: 27,	69: 110, 70: 90, 71: 160, 72: 82, 73: 59, 74: 214, 75: 179,	76: 41,
+                77: 227, 78: 47, 79: 132, 80: 83, 81: 209, 82: 0, 83: 237, 84: 32, 85: 252, 86: 177, 87: 91, 88: 106, 89: 203,
+                90: 190, 91: 57, 92: 74, 93: 76, 94: 88, 95: 207, 96: 208, 97: 239,	98: 170, 99: 251, 100: 67, 101: 77, 102: 51,
+                103: 133, 104: 69, 105: 249, 106: 2, 107: 127, 108: 80, 109: 60, 110: 159, 111: 168, 112: 81, 113: 163, 114: 64,
+                115: 143, 116: 146, 117: 157, 118: 56, 119: 245, 120: 188, 121: 182, 122: 218, 123: 33, 124: 16, 125: 255,
+                126: 243, 127: 210, 128: 205, 129: 12, 130: 19, 131: 236, 132: 95, 133: 151, 134: 68, 135: 23, 136: 196,
+                137: 167, 138: 126, 139: 61, 140: 100, 141: 93, 142: 25, 143: 115, 144: 96, 145: 129, 146: 79, 147: 220,
+                148: 34, 149: 42, 150: 144, 151: 136, 152: 70, 153: 238, 154: 184, 155: 20, 156: 222, 157: 94, 158: 11,
+                159: 219, 160: 224, 161: 50, 162: 58, 163: 10, 164: 73, 165: 6, 166: 36, 167: 92, 168: 194, 169: 211, 170: 172,
+                171: 98, 172: 145, 173: 149, 174: 228, 175: 121, 176: 231, 177: 200, 178: 55, 179: 109, 180: 141, 181: 213,
+                182: 78, 183: 169, 184: 108, 185: 86, 186: 244, 187: 234, 188: 101, 189: 122, 190: 174, 191: 8, 192: 186,
+                193: 120, 194: 37, 195: 46, 196: 28, 197: 166, 198: 180, 199: 198, 200: 232, 201: 221, 202: 116, 203: 31,
+                204: 75, 205: 189, 206: 139, 207: 138, 208: 112, 209: 62, 210: 181,	211: 102, 212: 72, 213: 3, 214: 246,
+                215: 14, 216: 97, 217: 53, 218: 87, 219: 185, 220: 134, 221: 193, 222: 29, 223: 158, 224: 225, 225: 248,
+                226: 152, 227: 17, 228: 105, 229: 217, 230: 142, 231: 148, 232: 155, 233: 30, 234: 135, 235: 233, 236: 206,
+                237: 85, 238: 40, 239: 223, 240: 140, 241: 161, 242: 137, 243: 13, 244: 191, 245: 230, 246: 66, 247: 104,
+                248: 65, 249: 153, 250: 45, 251: 15, 252: 176, 253: 84, 254: 187, 255: 22,
+            }.get(input, 0);
+
+        def HammingWeight(inputs):
+            return {
+                0: 0, 1: 1, 2: 1, 3: 2, 4: 1, 5: 2, 6: 2, 7: 3, 8: 1, 9: 2, 10: 2, 11: 3, 12: 2, 13: 3, 14: 3, 15: 4, 16: 1,
+                17: 2, 18: 2, 19: 3, 20: 2, 21: 3, 22: 3, 23: 4, 24: 2, 25: 3, 26: 3, 27: 4, 28: 3, 29: 4, 30: 4, 31: 5, 32: 1,
+                33: 2, 34: 2, 35: 3, 36: 2, 37: 3, 38: 3, 39: 4, 40: 2, 41: 3, 42: 3, 43: 4, 44: 3, 45: 4, 46: 4, 47: 5, 48: 2,
+                49: 3, 50: 3, 51: 4, 52: 3, 53: 4, 54: 4, 55: 5, 56: 3, 57: 4, 58: 4, 59: 5, 60: 4, 61: 5, 62: 5, 63: 6, 64: 1,
+                65: 2, 66: 2, 67: 3, 68: 2, 69: 3, 70: 3, 71: 4, 72: 2, 73: 3, 74: 3, 75: 4, 76: 3, 77: 4, 78: 4, 79: 5, 80: 2,
+                81: 3, 82: 3, 83: 4, 84: 3, 85: 4, 86: 4, 87: 5, 88: 3, 89: 4, 90: 4, 91: 5, 92: 4, 93: 5, 94: 5, 95: 6, 96: 2,
+                97: 3, 98: 3, 99: 4, 100: 3, 101: 4, 102: 4, 103: 5, 104: 3, 105: 4, 106: 4, 107: 5, 108: 4, 109: 5, 110: 5,
+                111: 6, 112: 3, 113: 4, 114: 4, 115: 5, 116: 4, 117: 5, 118: 5, 119: 6, 120: 4, 121: 5, 122: 5, 123: 6, 124: 5,
+                125: 6, 126: 6, 127: 7, 128: 1, 129: 2, 130: 2, 131: 3, 132: 2, 133: 3, 134: 3, 135: 4, 136: 2, 137: 3, 138: 3,
+                139: 4, 140: 3, 141: 4, 142: 4, 143: 5, 144: 2, 145: 3, 146: 3, 147: 4, 148: 3, 149: 4, 150: 4, 151: 5, 152: 3,
+                153: 4, 154: 4, 155: 5, 156: 4, 157: 5, 158: 5, 159: 6, 160: 2, 161: 3, 162: 3, 163: 4, 164: 3, 165: 4, 166: 4,
+                167: 5, 168: 3, 169: 4, 170: 4, 171: 5, 172: 4, 173: 5, 174: 5, 175: 6, 176: 3, 177: 4, 178: 4, 179: 5, 180: 4,
+                181: 5, 182: 5, 183: 6, 184: 4, 185: 5, 186: 5, 187: 6, 188: 5, 189: 6, 190: 6, 191: 7, 192: 2, 193: 3, 194: 3,
+                195: 4, 196: 3, 197: 4, 198: 4, 199: 5, 200: 3, 201: 4, 202: 4, 203: 5, 204: 4, 205: 5, 206: 5, 207: 6, 208: 3,
+                209: 4, 210: 4, 211: 5, 212: 4, 213: 5, 214: 5, 215: 6, 216: 4, 217: 5, 218: 5, 219: 6, 220: 5, 221: 6, 222: 6,
+                223: 7, 224: 3, 225: 4, 226: 4, 227: 5, 228: 4, 229: 5, 230: 5, 231: 6, 232: 4, 233: 5, 234: 5, 235: 6, 236: 5,
+                237: 6, 238: 6, 239: 7, 240: 4, 241: 5, 242: 5, 243: 6, 244: 5, 245: 6, 246: 6, 247: 7, 248: 5, 249: 6, 250: 6,
+                251: 7, 252: 6, 253: 7, 254: 7, 255: 8,
+
+            }.get(inputs, 0);
+
+        def updateKey():
+            ##used to update the arrays
+            labelAnsFirst0.config(text=keyFirstAnsList0)
+            labelAnsFirst1.config(text=keyFirstAnsList1)
+            labelAnsFirst2.config(text=keyFirstAnsList2)
+            labelAnsFirst3.config(text=keyFirstAnsList3)
+
+            keyFirstAnsListHex0 = np.array2string(keyFirstAnsList0, formatter={'int':lambda keyFirstAnsList0: hex(keyFirstAnsList0)})
+            keyFirstAnsListHex1 = np.array2string(keyFirstAnsList1, formatter={'int':lambda keyFirstAnsList1: hex(keyFirstAnsList1)})
+            keyFirstAnsListHex2 = np.array2string(keyFirstAnsList2, formatter={'int':lambda keyFirstAnsList2: hex(keyFirstAnsList2)})
+            keyFirstAnsListHex3 = np.array2string(keyFirstAnsList3, formatter={'int':lambda keyFirstAnsList3: hex(keyFirstAnsList3)})
+
+            labelAnsFirstHex0.config(text=keyFirstAnsListHex0)
+            labelAnsFirstHex1.config(text=keyFirstAnsListHex1)
+            labelAnsFirstHex2.config(text=keyFirstAnsListHex2)
+            labelAnsFirstHex3.config(text=keyFirstAnsListHex3)
+
+        def PMIHW_First(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList0[0]=keyAns
+            ax_arr[0,0].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First2(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList0[1]=keyAns
+            ax_arr[0,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First3(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList0[2]=keyAns
+            ax_arr[0,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First4(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList0[3]=keyAns
+            ax_arr[0,3].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First5(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList1[0]=keyAns
+            ax_arr[1,0].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First6(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList1[1]=keyAns
+            ax_arr[1,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First7(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList1[2]=keyAns
+            ax_arr[1,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First8(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList1[3]=keyAns
+            ax_arr[1,3].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First9(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList2[0]=keyAns
+            ax_arr[2,0].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First10(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList2[1]=keyAns
+            ax_arr[2,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First11(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList2[2]=keyAns
+            ax_arr[2,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First12(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList2[3]=keyAns
+            ax_arr[2,3].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First13(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList3[0]=keyAns
+            ax_arr[3,0].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First14(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList3[1]=keyAns
+            ax_arr[3,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First15(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList3[2]=keyAns
+            ax_arr[3,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_First16(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k)
+                Inv_Result = Power_Model.apply(SubBytes)
+                HW = Inv_Result.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            A2 = np.array(append_PM)
+            B = np.array(B1.T)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+
+            result = pcorr.T
+            global rarr
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyFirstAnsList3[3]=keyAns
+            ax_arr[3,3].plot(rarr)
+            fig.canvas.draw()
+
+        def runCalc_First():
+            global i,j
+            if keyOption.get() == 0:
+                i = 0
+                j = 0
+                PMIHW_First(i,j)
+                updateKey()
+            elif keyOption.get() == 1:
+                i = 1
+                j = 5
+                PMIHW_First2(i,j)
+                updateKey()
+            elif keyOption.get() == 2:
+                i = 2
+                j = 10
+                PMIHW_First3(i,j)
+                updateKey()
+            elif keyOption.get() == 3:
+                i = 3
+                j = 15
+                PMIHW_First4(i,j)
+                updateKey()
+            elif keyOption.get() == 4:
+                i = 4
+                j = 4
+                PMIHW_First5(i,j)
+                updateKey()
+            elif keyOption.get() == 5:
+                i = 5
+                j = 9
+                PMIHW_First6(i,j)
+                updateKey()
+            elif keyOption.get() == 6:
+                i = 6
+                j = 14
+                PMIHW_First7(i,j)
+                updateKey()
+            elif keyOption.get() == 7:
+                i = 7
+                j = 3
+                PMIHW_First8(i,j)
+                updateKey()
+            elif keyOption.get() == 8:
+                i = 8
+                j = 8
+                PMIHW_First9(i,j)
+                updateKey()
+            elif keyOption.get() == 9:
+                i = 9
+                j = 13
+                PMIHW_First10(i,j)
+                updateKey()
+            elif keyOption.get() == 10:
+                i = 10
+                j = 2
+                PMIHW_First11(i,j)
+                updateKey()
+            elif keyOption.get() == 11:
+                i = 11
+                j = 7
+                PMIHW_First12(i,j)
+                updateKey()
+            elif keyOption.get() == 12:
+                i = 12
+                j = 12
+                PMIHW_First13(i,j)
+                updateKey()
+            elif keyOption.get() == 13:
+                i = 13
+                j = 1
+                PMIHW_First14(i,j)
+                updateKey()
+            elif keyOption.get() == 14:
+                i = 14
+                j = 6
+                PMIHW_First15(i,j)
+                updateKey()
+            else:
+                i = 15
+                j = 11
+                PMIHW_First16(i,j)
+                updateKey()
+
+        ##runs both calculations and updating keys
+        keySelect = tk.Button(leftFrame, text='OK', fg='red', command=runCalc_First)
+        keySelect.pack(pady=5, padx=10)
+        #keySelect.grid(row=1, column =2)
+
+        ##displays graph
+        canvas1 = FigureCanvasTkAgg(fig, self) #need different canvas
+        canvas1.draw()
+        canvas1.get_tk_widget().pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        space = ttk.Label(leftFrame, text='')
+        space.pack(padx=20,pady=20)
+
+        ##displays keys in binary and hex form
+        labelFirst0 = ttk.Label(leftFrame, text='Keys:', font=NORMAL_FONT)
+        labelFirst0.pack(anchor="n", padx=10, pady=10)
+
+        labelAnsFirst0 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirst0.pack(anchor="n", padx=10)
+        labelAnsFirst1 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirst1.pack(anchor="n", padx=10)
+        labelAnsFirst2 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirst2.pack(anchor="n", padx=10)
+        labelAnsFirst3 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirst3.pack(anchor="n", padx=10)
+
+        labelFirstHex0 = ttk.Label(leftFrame, text='HEX Keys:', font=NORMAL_FONT)
+        labelFirstHex0.pack(anchor="n", padx=10, pady=10)
+
+        labelAnsFirstHex0 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirstHex0.pack(anchor="n", padx=10)
+        labelAnsFirstHex1 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirstHex1.pack(anchor="n", padx=10)
+        labelAnsFirstHex2 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirstHex2.pack(anchor="n", padx=10)
+        labelAnsFirstHex3 = ttk.Label(leftFrame, text=' ')
+        labelAnsFirstHex3.pack(anchor="n", padx=10)
+
+        buttonHome = ttk.Button(leftFrame, text="Back to Home Page", command=lambda: controller.show_frame(HomePage))
+        buttonHome.pack(side="bottom", anchor="s", pady=10,padx=10)
+
+class PageLast(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent)
+        leftFrame = tk.Frame(self)
+        leftFrame.pack(side="left", fill="y", expand=False)
+        rightFrame = tk.Frame(self)
+        rightFrame.pack(side="right", fill="both", expand=False)
+
+        label = ttk.Label(leftFrame, text="Last Round Attack", font=LARGE_FONT)
+        label.pack(pady=10,padx=10)
+
+        keyOption = tk.IntVar(self)
+        keyOption.set('0')
+
+        keyChoices = tk.OptionMenu(leftFrame, keyOption, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+        keyChoices.pack(pady=5,padx=10, anchor="center")
+
+        blank = [0,0,0,0]
+        global keyLastAnsList0, keyLastAnsListHex0, keyLastAnsList1, keyLastAnsListHex1, keyLastAnsList2, keyLastAnsListHex2, keyLastAnsList3, keyLastAnsListHex3
+        keyLastAnsList0 = np.array(blank)
+        keyLastAnsListHex0 = np.array(blank)
+        keyLastAnsList1 = np.array(blank)
+        keyLastAnsListHex1 = np.array(blank)
+        keyLastAnsList2 = np.array(blank)
+        keyLastAnsListHex2 = np.array(blank)
+        keyLastAnsList3 = np.array(blank)
+        keyLastAnsListHex3 = np.array(blank)
+
+        def InvSBox(input):
+            return {
+                0: 82, 1: 9, 2: 106, 3: 213, 4: 48, 5: 54, 6: 165, 7: 56, 8: 191, 9: 64, 10: 163, 11: 158, 12: 129, 13: 243,
+                14: 215, 15: 251, 16: 124, 17: 227, 18: 57, 19: 130, 20: 155, 21: 47, 22: 255, 23: 135, 24: 52, 25: 142, 26: 67,
+                27: 68, 28: 196, 29: 222, 30: 233, 31: 203, 32: 84, 33: 123, 34: 148, 35: 50, 36: 166, 37: 194, 38: 35, 39: 61,
+                40: 238, 41: 76, 42: 149, 43: 11, 44: 66, 45: 250, 46: 195, 47: 78, 48: 8, 49: 46, 50: 161, 51: 102, 52: 40,
+                53: 217, 54: 36, 55: 178, 56: 118, 57: 91, 58: 162, 59: 73, 60: 109, 61: 139, 62: 209, 63: 37, 64: 114, 65: 248,
+                66: 246, 67: 100, 68: 134, 69: 104, 70: 152, 71: 22, 72: 212, 73: 164, 74: 92, 75: 204, 76: 93, 77: 101,
+                78: 182, 79: 146, 80: 108, 81: 112, 82: 72, 83: 80, 84: 253, 85: 237, 86: 185, 87: 218, 88: 94, 89: 21, 90: 70,
+                91: 87, 92: 167, 93: 141, 94: 157, 95: 132, 96: 144, 97: 216, 98: 171, 99: 0, 100: 140, 101: 188, 102: 211,
+                103: 10, 104: 247, 105: 228, 106: 88, 107: 5, 108: 184, 109: 179, 110: 69, 111: 6, 112: 208, 113: 44, 114: 30,
+                115: 143, 116: 202, 117: 63, 118: 15, 119: 2, 120: 193, 121: 175, 122: 189, 123: 3, 124: 1, 125: 19, 126: 138,
+                127: 107, 128: 58, 129: 145, 130: 17, 131: 65, 132: 79, 133: 103, 134: 220, 135: 234, 136: 151, 137: 242,
+                138: 207, 139: 206, 140: 240, 141: 180, 142: 230, 143: 115, 144: 150, 145: 172, 146: 116, 147: 34, 148: 231,
+                149: 173, 150: 53, 151: 133, 152: 226, 153: 249, 154: 55, 155: 232, 156: 28, 157: 117, 158: 223, 159: 110,
+                160: 71, 161: 241, 162: 26, 163: 113, 164: 29, 165: 41, 166: 197, 167: 137, 168: 111, 169: 183, 170: 98,
+                171: 14, 172: 170, 173: 24, 174: 190, 175: 27, 176: 252, 177: 86, 178: 62, 179: 75, 180: 198, 181: 210,
+                182: 121, 183: 32, 184: 154, 185: 219, 186: 192, 187: 254, 188: 120, 189: 205, 190: 90, 191: 244, 192: 31,
+                193: 221, 194: 168, 195: 51, 196: 136, 197: 7, 198: 199, 199: 49, 200: 177, 201: 18, 202: 16, 203: 89, 204: 39,
+                205: 128, 206: 236, 207: 95, 208: 96, 209: 81, 210: 127, 211: 169, 212: 25, 213: 181, 214: 74, 215: 13, 216: 45,
+                217: 229, 218: 122, 219: 159, 220: 147, 221: 201, 222: 156, 223: 239, 224: 160, 225: 224, 226: 59, 227: 77,
+                228: 174, 229: 42, 230: 245, 231: 176, 232: 200, 233: 235, 234: 187, 235: 60, 236: 131, 237: 83, 238: 153,
+                239: 97, 240: 23, 241: 43, 242: 4, 243: 126, 244: 186, 245: 119, 246: 214, 247: 38, 248: 225, 249: 105, 250: 20,
+                251: 99, 252: 85, 253: 33, 254: 12, 255: 125,
+            }.get(input, 0);
+
+        def HammingWeight(inputs):
+            return {
+                0: 0, 1: 1, 2: 1, 3: 2, 4: 1, 5: 2, 6: 2, 7: 3, 8: 1, 9: 2, 10: 2, 11: 3, 12: 2, 13: 3, 14: 3, 15: 4, 16: 1,
+                17: 2, 18: 2, 19: 3, 20: 2, 21: 3, 22: 3, 23: 4, 24: 2, 25: 3, 26: 3, 27: 4, 28: 3, 29: 4, 30: 4, 31: 5, 32: 1,
+                33: 2, 34: 2, 35: 3, 36: 2, 37: 3, 38: 3, 39: 4, 40: 2, 41: 3, 42: 3, 43: 4, 44: 3, 45: 4, 46: 4, 47: 5, 48: 2,
+                49: 3, 50: 3, 51: 4, 52: 3, 53: 4, 54: 4, 55: 5, 56: 3, 57: 4, 58: 4, 59: 5, 60: 4, 61: 5, 62: 5, 63: 6, 64: 1,
+                65: 2, 66: 2, 67: 3, 68: 2, 69: 3, 70: 3, 71: 4, 72: 2, 73: 3, 74: 3, 75: 4, 76: 3, 77: 4, 78: 4, 79: 5, 80: 2,
+                81: 3, 82: 3, 83: 4, 84: 3, 85: 4, 86: 4, 87: 5, 88: 3, 89: 4, 90: 4, 91: 5, 92: 4, 93: 5, 94: 5, 95: 6, 96: 2,
+                97: 3, 98: 3, 99: 4, 100: 3, 101: 4, 102: 4, 103: 5, 104: 3, 105: 4, 106: 4, 107: 5, 108: 4, 109: 5, 110: 5,
+                111: 6, 112: 3, 113: 4, 114: 4, 115: 5, 116: 4, 117: 5, 118: 5, 119: 6, 120: 4, 121: 5, 122: 5, 123: 6, 124: 5,
+                125: 6, 126: 6, 127: 7, 128: 1, 129: 2, 130: 2, 131: 3, 132: 2, 133: 3, 134: 3, 135: 4, 136: 2, 137: 3, 138: 3,
+                139: 4, 140: 3, 141: 4, 142: 4, 143: 5, 144: 2, 145: 3, 146: 3, 147: 4, 148: 3, 149: 4, 150: 4, 151: 5, 152: 3,
+                153: 4, 154: 4, 155: 5, 156: 4, 157: 5, 158: 5, 159: 6, 160: 2, 161: 3, 162: 3, 163: 4, 164: 3, 165: 4, 166: 4,
+                167: 5, 168: 3, 169: 4, 170: 4, 171: 5, 172: 4, 173: 5, 174: 5, 175: 6, 176: 3, 177: 4, 178: 4, 179: 5, 180: 4,
+                181: 5, 182: 5, 183: 6, 184: 4, 185: 5, 186: 5, 187: 6, 188: 5, 189: 6, 190: 6, 191: 7, 192: 2, 193: 3, 194: 3,
+                195: 4, 196: 3, 197: 4, 198: 4, 199: 5, 200: 3, 201: 4, 202: 4, 203: 5, 204: 4, 205: 5, 206: 5, 207: 6, 208: 3,
+                209: 4, 210: 4, 211: 5, 212: 4, 213: 5, 214: 5, 215: 6, 216: 4, 217: 5, 218: 5, 219: 6, 220: 5, 221: 6, 222: 6,
+                223: 7, 224: 3, 225: 4, 226: 4, 227: 5, 228: 4, 229: 5, 230: 5, 231: 6, 232: 4, 233: 5, 234: 5, 235: 6, 236: 5,
+                237: 6, 238: 6, 239: 7, 240: 4, 241: 5, 242: 5, 243: 6, 244: 5, 245: 6, 246: 6, 247: 7, 248: 5, 249: 6, 250: 6,
+                251: 7, 252: 6, 253: 7, 254: 7, 255: 8,
+
+            }.get(inputs, 0);
+
+        def updateKey():
+            labelAnsLast0.config(text=keyLastAnsList0)
+            labelAnsLast1.config(text=keyLastAnsList1)
+            labelAnsLast2.config(text=keyLastAnsList2)
+            labelAnsLast3.config(text=keyLastAnsList3)
+
+            keyLastAnsListHex0 = np.array2string(keyLastAnsList0, formatter={'int':lambda keyLastAnsList0: hex(keyLastAnsList0)})
+            keyLastAnsListHex1 = np.array2string(keyLastAnsList1, formatter={'int':lambda keyLastAnsList1: hex(keyLastAnsList1)})
+            keyLastAnsListHex2 = np.array2string(keyLastAnsList2, formatter={'int':lambda keyLastAnsList2: hex(keyLastAnsList2)})
+            keyLastAnsListHex3 = np.array2string(keyLastAnsList3, formatter={'int':lambda keyLastAnsList3: hex(keyLastAnsList3)})
+
+            labelAnsLastHex0.config(text=keyLastAnsListHex0)
+            labelAnsLastHex1.config(text=keyLastAnsListHex1)
+            labelAnsLastHex2.config(text=keyLastAnsListHex2)
+            labelAnsLastHex3.config(text=keyLastAnsListHex3)
+
+        def PMIHW_Last(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            #global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            #global keyAns
+            keyAns = removeZero.idxmax()
+            ##keyAns_df.append(keyAns1)
+            #keyAnsList.append(keyAns1)
+            keyLastAnsList0[0]=keyAns
+            ax_arr[0,0].plot(rarr)
+            fig.canvas.draw()
+            #return keyAnsList
+
+        def PMIHW_Last2(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            #keyAnsList.append(keyAns)
+            keyLastAnsList0[1]=keyAns
+            ax_arr[0,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last3(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList0[2]=keyAns
+            ax_arr[0,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last4(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            keyAns = removeZero.idxmax()
+            keyLastAnsList0[3]=keyAns
+            ax_arr[0,3].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last5(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList1[0]=keyAns
+            ax_arr[1,0].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last6(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList1[1]=keyAns
+            ax_arr[1,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last7(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList1[2]=keyAns
+            ax_arr[1,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last8(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList1[3]=keyAns
+            ax_arr[1,3].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last9(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList2[0]=keyAns
+            ax_arr[2,0].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last10(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList2[1]=keyAns
+            ax_arr[2,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last11(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList2[2]=keyAns
+            ax_arr[2,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last12(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList2[3]=keyAns
+            ax_arr[2,3].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last13(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList3[0]=keyAns
+            ax_arr[3,0].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last14(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList3[1]=keyAns
+            ax_arr[3,1].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last15(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList3[2]=keyAns
+            ax_arr[3,2].plot(rarr)
+            fig.canvas.draw()
+
+        def PMIHW_Last16(i,j):
+            append_PM = []
+            for k in range(0,256):
+                Power_Model = np.bitwise_xor(A[i], k) #correct except i??. i = column
+                Inv_Result = Power_Model.apply(InvSBox) #correct
+                Power_Model1 = np.bitwise_xor(A[j], Inv_Result) #correct
+                HW = Power_Model1.apply(HammingWeight)
+                df_PM = HW.to_frame()
+                append_PM.append(df_PM)
+
+            append_PM = pd.concat(append_PM, axis=1)
+            append_PM.columns = np.arange(len(append_PM.columns))
+
+            A2 = np.array(append_PM)
+            B = np.array(B1)
+
+            # Get number of rows in either A or B
+            N = B.shape[0]
+
+            # Store column-wise in A and B, as they would be used at few places
+            sA = A2.sum(0)
+            sB = B.sum(0)
+
+            # Basically there are four parts in the formula. We would compute them one-by-one
+            p1 = N*np.dot(B.T,A2)
+            p2 = sA*sB[:,None]
+            p3 = N*((B**2).sum(0)) - (sB**2)
+            p4 = N*((A2**2).sum(0)) - (sA**2)
+
+            # Finally compute Pearson Correlation Coefficient as 2D array
+            pcorr = ((p1 - p2)/np.sqrt(p4*p3[:,None]))
+
+            # Get the element corresponding to absolute argmax along the columns
+            out = pcorr[np.nanargmax(np.abs(pcorr),axis=0),np.arange(pcorr.shape[1])]
+            global rarr
+            result = pcorr.T
+            rarr = pd.DataFrame(result)
+            findMaxCorr = rarr.max(axis=0).max()
+            findCol = (rarr == findMaxCorr).idxmax(axis=1)
+            removeZero = findCol[findCol!=0]
+            global keyAns
+            keyAns = removeZero.idxmax()
+            keyLastAnsList3[3]=keyAns
+            ax_arr[3,3].plot(rarr)
+            fig.canvas.draw()
+
+        def runCalc_Last():
+            global i,j
+            if keyOption.get() == 0:
+                i = 0
+                j = 0
+                PMIHW_Last(i,j)
+                updateKey()
+            elif keyOption.get() == 1:
+                i = 1
+                j = 5
+                PMIHW_Last2(i,j)
+                updateKey()
+            elif keyOption.get() == 2:
+                i = 2
+                j = 10
+                PMIHW_Last3(i,j)
+                updateKey()
+            elif keyOption.get() == 3:
+                i = 3
+                j = 15
+                PMIHW_Last4(i,j)
+                updateKey()
+            elif keyOption.get() == 4:
+                i = 4
+                j = 4
+                PMIHW_Last5(i,j)
+                updateKey()
+            elif keyOption.get() == 5:
+                i = 5
+                j = 9
+                PMIHW_Last6(i,j)
+                updateKey()
+            elif keyOption.get() == 6:
+                i = 6
+                j = 14
+                PMIHW_Last7(i,j)
+                updateKey()
+            elif keyOption.get() == 7:
+                i = 7
+                j = 3
+                PMIHW_Last8(i,j)
+                updateKey()
+            elif keyOption.get() == 8:
+                i = 8
+                j = 8
+                PMIHW_Last9(i,j)
+                updateKey()
+            elif keyOption.get() == 9:
+                i = 9
+                j = 13
+                PMIHW_Last10(i,j)
+                updateKey()
+            elif keyOption.get() == 10:
+                i = 10
+                j = 2
+                PMIHW_Last11(i,j)
+                updateKey()
+            elif keyOption.get() == 11:
+                i = 11
+                j = 7
+                PMIHW_Last12(i,j)
+                updateKey()
+            elif keyOption.get() == 12:
+                i = 12
+                j = 12
+                PMIHW_Last13(i,j)
+                updateKey()
+            elif keyOption.get() == 13:
+                i = 13
+                j = 1
+                PMIHW_Last14(i,j)
+                updateKey()
+            elif keyOption.get() == 14:
+                i = 14
+                j = 6
+                PMIHW_Last15(i,j)
+                updateKey()
+            else:
+                i = 15
+                j = 11
+                PMIHW_Last16(i,j)
+                updateKey()
+
+        keySelect = tk.Button(leftFrame, text='OK', fg='red', command=runCalc_Last)
+        keySelect.pack(pady=5, padx=10)
+
+        space = ttk.Label(leftFrame, text='')
+        space.pack(padx=20,pady=20)
+
+        labelLast0 = ttk.Label(leftFrame, text='Keys:', font=NORMAL_FONT)
+        labelLast0.pack(anchor="n", padx=10, pady=10)
+
+        labelAnsLast0 = ttk.Label(leftFrame, text=' ')
+        labelAnsLast0.pack(anchor="n", padx=10)
+        labelAnsLast1 = ttk.Label(leftFrame, text=' ')
+        labelAnsLast1.pack(anchor="n", padx=10)
+        labelAnsLast2 = ttk.Label(leftFrame, text=' ')
+        labelAnsLast2.pack(anchor="n", padx=10)
+        labelAnsLast3 = ttk.Label(leftFrame, text=' ')
+        labelAnsLast3.pack(anchor="n", padx=10)
+
+        labelLastHex0 = ttk.Label(leftFrame, text='HEX Keys:', font=NORMAL_FONT)
+        labelLastHex0.pack(anchor="n", padx=10, pady=10)
+
+        labelAnsLastHex0 = ttk.Label(leftFrame, text=' ')
+        labelAnsLastHex0.pack(anchor="n", padx=10)
+        labelAnsLastHex1 = ttk.Label(leftFrame, text=' ')
+        labelAnsLastHex1.pack(anchor="n", padx=10)
+        labelAnsLastHex2 = ttk.Label(leftFrame, text=' ')
+        labelAnsLastHex2.pack(anchor="n", padx=10)
+        labelAnsLastHex3 = ttk.Label(leftFrame, text=' ')
+        labelAnsLastHex3.pack(anchor="n", padx=10)
+
+        fig, ax_arr = plt.subplots(nrows=4, ncols=4, squeeze=False, figsize=(7,7))
+        plt.tight_layout()
+
+        canvas = FigureCanvasTkAgg(fig, self)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        buttonHome = ttk.Button(leftFrame, text="Back to Home Page", command=lambda: controller.show_frame(HomePage))
+        buttonHome.pack(side="bottom", anchor="s", pady=10,padx=10)
+
+
+app = StartHacking()
+#app.geometry("1920x1080")
+app.state('zoomed')
+app.mainloop()
+
